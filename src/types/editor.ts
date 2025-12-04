@@ -18,6 +18,8 @@ export enum EntityType {
   Lever = 'lever',
   Portal = 'portal',
   WallBlock = 'wallBlock',
+  Start = 'start',
+  End = 'end',
 }
 
 // Entity data structure
@@ -96,6 +98,15 @@ export interface EntityInfo {
   icon: string;
 }
 
+// Bullet for shooting
+export interface Bullet {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  damage: number;
+}
+
 // Game physics constants
 export const PHYSICS = {
   GRAVITY: 0.5,
@@ -104,6 +115,8 @@ export const PHYSICS = {
   PLAYER_JUMP: -12,
   MAX_FALL_SPEED: 12,
   TILE_SIZE: 32,
+  BULLET_SPEED: 12,
+  SHOOT_COOLDOWN: 200,
 };
 
 // Default tile palette
@@ -118,6 +131,8 @@ export const TILE_PALETTE: TileInfo[] = [
 // Default entity palette
 export const ENTITY_PALETTE: EntityInfo[] = [
   { type: EntityType.Player, name: 'Player', color: '#10B981', icon: 'User' },
+  { type: EntityType.Start, name: 'Start', color: '#22C55E', icon: 'Flag' },
+  { type: EntityType.End, name: 'End', color: '#EF4444', icon: 'Target' },
   { type: EntityType.Slime, name: 'Slime', color: '#22C55E', icon: 'Bug' },
   { type: EntityType.Bat, name: 'Bat', color: '#8B5CF6', icon: 'Bird' },
   { type: EntityType.Coin, name: 'Coin', color: '#EAB308', icon: 'Coins' },

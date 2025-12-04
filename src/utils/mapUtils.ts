@@ -64,6 +64,8 @@ export const createEntity = (
     [EntityType.Lever]: { width: 24, height: 24 },
     [EntityType.Portal]: { width: 32, height: 48 },
     [EntityType.WallBlock]: { width: 32, height: 32 },
+    [EntityType.Start]: { width: 32, height: 32 },
+    [EntityType.End]: { width: 32, height: 32 },
   };
 
   const size = sizes[type] || { width: 32, height: 32 };

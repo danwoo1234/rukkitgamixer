@@ -14,13 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      game_maps: {
+        Row: {
+          created_at: string | null
+          height: number
+          id: string
+          is_public: boolean | null
+          likes: number | null
+          map_data: Json
+          name: string
+          play_count: number | null
+          tile_size: number
+          updated_at: string | null
+          user_id: string
+          width: number
+        }
+        Insert: {
+          created_at?: string | null
+          height?: number
+          id?: string
+          is_public?: boolean | null
+          likes?: number | null
+          map_data: Json
+          name?: string
+          play_count?: number | null
+          tile_size?: number
+          updated_at?: string | null
+          user_id: string
+          width?: number
+        }
+        Update: {
+          created_at?: string | null
+          height?: number
+          id?: string
+          is_public?: boolean | null
+          likes?: number | null
+          map_data?: Json
+          name?: string
+          play_count?: number | null
+          tile_size?: number
+          updated_at?: string | null
+          user_id?: string
+          width?: number
+        }
+        Relationships: []
+      }
+      map_likes: {
+        Row: {
+          created_at: string | null
+          id: string
+          map_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          map_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          map_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "map_likes_map_id_fkey"
+            columns: ["map_id"]
+            isOneToOne: false
+            referencedRelation: "game_maps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          id: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_play_count: { Args: { map_uuid: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

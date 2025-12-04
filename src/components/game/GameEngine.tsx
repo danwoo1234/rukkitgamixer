@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { GameMap, TileType, EntityType, Entity, PHYSICS } from '@/types/editor';
+import { GameMap, TileType, EntityType, Entity, PHYSICS, Bullet } from '@/types/editor';
 
 interface GameEngineProps {
   map: GameMap;
@@ -19,6 +19,8 @@ interface GameEntity {
   isGrounded: boolean;
   direction: number;
   isDead: boolean;
+  health: number;
+  maxHealth: number;
   properties?: Record<string, unknown>;
 }
 
@@ -41,6 +43,15 @@ interface FloatingText {
   color: string;
 }
 
+interface GameBullet {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  damage: number;
+  isPlayerBullet: boolean;
+}
+
 export const GameEngine: React.FC<GameEngineProps> = ({
   map,
   onStop,
@@ -53,11 +64,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     entities: [] as GameEntity[],
     particles: [] as Particle[],
     floatingTexts: [] as FloatingText[],
+    bullets: [] as GameBullet[],
     keys: {} as Record<string, boolean>,
+    mousePos: { x: 0, y: 0 },
     score: 0,
     doorsOpen: false,
     gameOver: false,
     won: false,
+    lastShootTime: 0,
+    startPos: { x: 64, y: 64 },
   });
 
   // Initialize game
@@ -67,14 +82,22 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     state.entities = [];
     state.particles = [];
     state.floatingTexts = [];
+    state.bullets = [];
     state.score = 0;
     state.doorsOpen = false;
     state.gameOver = false;
     state.won = false;
+    state.startPos = { x: 64, y: 64 };
 
     // Find all entities from map
     map.layers.forEach(layer => {
       layer.entities.forEach(entity => {
+        // Handle Start entity - set spawn position
+        if (entity.type === EntityType.Start) {
+          state.startPos = { x: entity.x, y: entity.y };
+          return;
+        }
+
         const gameEntity: GameEntity = {
           type: entity.type,
           x: entity.x,
@@ -86,11 +109,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           isGrounded: false,
           direction: 1,
           isDead: false,
+          health: entity.type === EntityType.Slime || entity.type === EntityType.Bat ? 1 : 1,
+          maxHealth: 1,
           properties: entity.properties,
         };
 
         if (entity.type === EntityType.Player) {
           state.player = gameEntity;
+          state.player.health = 3;
+          state.player.maxHealth = 3;
         } else {
           state.entities.push(gameEntity);
         }
@@ -101,8 +128,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     if (!state.player) {
       state.player = {
         type: EntityType.Player,
-        x: 64,
-        y: 64,
+        x: state.startPos.x,
+        y: state.startPos.y,
         width: 28,
         height: 28,
         vx: 0,
@@ -110,7 +137,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         isGrounded: false,
         direction: 1,
         isDead: false,
+        health: 3,
+        maxHealth: 3,
       };
+    } else {
+      // Move player to start position if Start entity exists
+      state.player.x = state.startPos.x;
+      state.player.y = state.startPos.y;
     }
   }, [map]);
 
@@ -142,6 +175,29 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     });
   }, []);
 
+  // Shoot bullet
+  const shootBullet = useCallback(() => {
+    const state = gameStateRef.current;
+    const { player, lastShootTime } = state;
+    const now = Date.now();
+    
+    if (!player || now - lastShootTime < PHYSICS.SHOOT_COOLDOWN) return;
+    
+    state.lastShootTime = now;
+    
+    const bullet: GameBullet = {
+      x: player.x + player.width / 2,
+      y: player.y + player.height / 2,
+      vx: player.direction * PHYSICS.BULLET_SPEED,
+      vy: 0,
+      damage: 1,
+      isPlayerBullet: true,
+    };
+    
+    state.bullets.push(bullet);
+    spawnParticles(bullet.x, bullet.y, '#FCD34D', 3);
+  }, [spawnParticles]);
+
   // Check tile collision
   const getTileAt = useCallback((x: number, y: number): TileType => {
     const tileX = Math.floor(x / map.tileSize);
@@ -151,7 +207,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       return TileType.Wall;
     }
 
-    // Check all layers for solid tiles
     for (const layer of map.layers) {
       const tile = layer.data[tileY]?.[tileX];
       if (tile === TileType.Ground || tile === TileType.Wall) {
@@ -166,7 +221,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   }, [map]);
 
   // AABB collision check
-  const checkAABB = useCallback((a: GameEntity, b: GameEntity): boolean => {
+  const checkAABB = useCallback((a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }): boolean => {
     return (
       a.x < b.x + b.width &&
       a.x + a.width > b.x &&
@@ -197,7 +252,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     const state = gameStateRef.current;
     if (state.gameOver || !state.player) return;
 
-    const { keys, player, entities, particles, floatingTexts } = state;
+    const { keys, player, entities, particles, floatingTexts, bullets } = state;
     const { GRAVITY, FRICTION, PLAYER_SPEED, PLAYER_JUMP, MAX_FALL_SPEED, TILE_SIZE } = PHYSICS;
 
     // Player input
@@ -214,6 +269,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     if ((keys['Space'] || keys['ArrowUp'] || keys['KeyW']) && player.isGrounded) {
       player.vy = PLAYER_JUMP;
       player.isGrounded = false;
+    }
+
+    // Shooting with left mouse or J key
+    if (keys['KeyJ'] || keys['MouseLeft']) {
+      shootBullet();
     }
 
     // Apply gravity
@@ -264,10 +324,63 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       getTileAt(player.x + player.width / 2, player.y),
     ];
     if (hazardTiles.some(t => t === TileType.Spike || t === TileType.Lava)) {
-      state.gameOver = true;
-      spawnParticles(player.x + player.width / 2, player.y + player.height / 2, '#EF4444', 20);
-      setTimeout(onDeath, 500);
-      return;
+      player.health--;
+      spawnParticles(player.x + player.width / 2, player.y + player.height / 2, '#EF4444', 10);
+      if (player.health <= 0) {
+        state.gameOver = true;
+        setTimeout(onDeath, 500);
+        return;
+      } else {
+        // Knockback
+        player.vy = PLAYER_JUMP * 0.5;
+        player.x = state.startPos.x;
+        player.y = state.startPos.y;
+      }
+    }
+
+    // Update bullets
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const bullet = bullets[i];
+      bullet.x += bullet.vx;
+      bullet.y += bullet.vy;
+
+      // Check bullet collision with tiles
+      const bulletTile = getTileAt(bullet.x, bullet.y);
+      if (bulletTile === TileType.Wall || bulletTile === TileType.Ground) {
+        spawnParticles(bullet.x, bullet.y, '#FCD34D', 5);
+        bullets.splice(i, 1);
+        continue;
+      }
+
+      // Check bullet out of bounds
+      if (bullet.x < 0 || bullet.x > map.width * map.tileSize || 
+          bullet.y < 0 || bullet.y > map.height * map.tileSize) {
+        bullets.splice(i, 1);
+        continue;
+      }
+
+      // Check bullet collision with enemies
+      if (bullet.isPlayerBullet) {
+        for (const entity of entities) {
+          if (entity.isDead) continue;
+          if (entity.type !== EntityType.Slime && entity.type !== EntityType.Bat) continue;
+
+          if (checkAABB({ x: bullet.x - 4, y: bullet.y - 4, width: 8, height: 8 }, entity)) {
+            entity.health -= bullet.damage;
+            spawnParticles(bullet.x, bullet.y, '#EF4444', 8);
+            
+            if (entity.health <= 0) {
+              entity.isDead = true;
+              spawnParticles(entity.x + entity.width / 2, entity.y + entity.height / 2, '#22C55E', 15);
+              spawnFloatingText(entity.x + entity.width / 2, entity.y, '+100', '#22C55E');
+              state.score += 100;
+            }
+            
+            bullets.splice(i, 1);
+            break;
+          }
+        }
+      }
     }
 
     // Update entities
@@ -309,11 +422,20 @@ export const GameEngine: React.FC<GameEngineProps> = ({
             spawnFloatingText(entity.x + entity.width / 2, entity.y, '+100', '#22C55E');
             state.score += 100;
           } else {
-            // Player dies
-            state.gameOver = true;
-            spawnParticles(player.x + player.width / 2, player.y + player.height / 2, '#EF4444', 20);
-            setTimeout(onDeath, 500);
-            return;
+            // Player takes damage
+            player.health--;
+            spawnParticles(player.x + player.width / 2, player.y + player.height / 2, '#EF4444', 10);
+            spawnFloatingText(player.x + player.width / 2, player.y, '-1 HP', '#EF4444');
+            
+            // Knockback
+            player.vx = (player.x < entity.x ? -1 : 1) * 8;
+            player.vy = -6;
+            
+            if (player.health <= 0) {
+              state.gameOver = true;
+              setTimeout(onDeath, 500);
+              return;
+            }
           }
         }
       }
@@ -332,14 +454,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       if (entity.type === EntityType.Lever && keys['KeyE']) {
         if (checkAABB(player, { ...entity, width: entity.width + 20, height: entity.height + 20, x: entity.x - 10, y: entity.y - 10 })) {
           state.doorsOpen = !state.doorsOpen;
-          keys['KeyE'] = false; // Prevent rapid toggling
+          keys['KeyE'] = false;
         }
       }
 
       // Door collision (only when closed)
       if (entity.type === EntityType.Door && !state.doorsOpen) {
         if (checkAABB(player, entity)) {
-          // Push player back
           if (player.x < entity.x) {
             player.x = entity.x - player.width;
           } else {
@@ -352,7 +473,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       // Wall block collision
       if (entity.type === EntityType.WallBlock) {
         if (checkAABB(player, entity)) {
-          // Resolve collision
           const overlapX = Math.min(player.x + player.width - entity.x, entity.x + entity.width - player.x);
           const overlapY = Math.min(player.y + player.height - entity.y, entity.y + entity.height - player.y);
 
@@ -376,8 +496,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         }
       }
 
-      // Portal win condition
-      if (entity.type === EntityType.Portal) {
+      // Portal/End win condition
+      if (entity.type === EntityType.Portal || entity.type === EntityType.End) {
         if (checkAABB(player, entity)) {
           state.won = true;
           state.gameOver = true;
@@ -409,7 +529,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         floatingTexts.splice(i, 1);
       }
     }
-  }, [getTileAt, checkAABB, isStompingFrom, spawnParticles, spawnFloatingText, onDeath, onWin]);
+  }, [getTileAt, checkAABB, isStompingFrom, spawnParticles, spawnFloatingText, shootBullet, onDeath, onWin, map]);
 
   // Draw entity
   const drawEntity = useCallback((
@@ -443,6 +563,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         ctx.arc(x + width / 3 + 3, y + height / 3, 2, 0, Math.PI * 2);
         ctx.arc(x + width * 2 / 3 + 3, y + height / 3, 2, 0, Math.PI * 2);
         ctx.fill();
+        // Gun
+        ctx.fillStyle = '#6B7280';
+        ctx.fillRect(x + width - 4, y + height / 2 - 3, 12, 6);
         break;
 
       case EntityType.Slime:
@@ -527,6 +650,35 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
         ctx.fillRect(x + 2, y + 2, width - 4, 4);
         break;
+
+      case EntityType.Start:
+        ctx.fillStyle = '#22C55E';
+        ctx.beginPath();
+        ctx.moveTo(x + width / 2, y);
+        ctx.lineTo(x + width, y + height);
+        ctx.lineTo(x, y + height);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 10px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('S', x + width / 2, y + height - 6);
+        break;
+
+      case EntityType.End:
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.arc(x + width / 2, y + height / 2, width / 2 - 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(x + width / 2, y + height / 2, width / 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.arc(x + width / 2, y + height / 2, width / 8, 0, Math.PI * 2);
+        ctx.fill();
+        break;
     }
 
     ctx.restore();
@@ -539,7 +691,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     if (!canvas || !ctx) return;
 
     const state = gameStateRef.current;
-    const { player, entities, particles, floatingTexts, score } = state;
+    const { player, entities, particles, floatingTexts, bullets, score } = state;
 
     // Clear
     ctx.fillStyle = '#0f172a';
@@ -552,7 +704,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       offsetX = canvas.width / 2 - player.x - player.width / 2;
       offsetY = canvas.height / 2 - player.y - player.height / 2;
       
-      // Clamp camera
       const maxOffsetX = 0;
       const minOffsetX = canvas.width - map.width * map.tileSize;
       const maxOffsetY = 0;
@@ -627,9 +778,21 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
     // Draw entities
     entities.forEach(entity => {
-      if (!entity.isDead || entity.type === EntityType.Door || entity.type === EntityType.Lever || entity.type === EntityType.Portal || entity.type === EntityType.WallBlock) {
+      if (!entity.isDead || entity.type === EntityType.Door || entity.type === EntityType.Lever || entity.type === EntityType.Portal || entity.type === EntityType.WallBlock || entity.type === EntityType.Start || entity.type === EntityType.End) {
         drawEntity(ctx, entity);
       }
+    });
+
+    // Draw bullets
+    bullets.forEach(bullet => {
+      ctx.fillStyle = '#FCD34D';
+      ctx.beginPath();
+      ctx.arc(bullet.x, bullet.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FEF3C7';
+      ctx.beginPath();
+      ctx.arc(bullet.x, bullet.y, 2, 0, Math.PI * 2);
+      ctx.fill();
     });
 
     // Draw player
@@ -665,10 +828,21 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     ctx.textAlign = 'left';
     ctx.fillText(`Score: ${score}`, 20, 40);
 
+    // Health bar
+    if (player) {
+      ctx.fillStyle = '#374151';
+      ctx.fillRect(20, 50, 100, 16);
+      ctx.fillStyle = '#EF4444';
+      ctx.fillRect(22, 52, (96 * player.health) / player.maxHealth, 12);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '12px Inter';
+      ctx.fillText(`HP: ${player.health}/${player.maxHealth}`, 25, 63);
+    }
+
     // Instructions
     ctx.font = '14px Inter';
     ctx.fillStyle = '#94A3B8';
-    ctx.fillText('WASD/Arrows: Move | Space: Jump | E: Interact | ESC: Exit', 20, canvas.height - 20);
+    ctx.fillText('WASD: Move | Space: Jump | J: Shoot | E: Interact | ESC: Exit', 20, canvas.height - 20);
 
     if (state.won) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -725,12 +899,28 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       gameStateRef.current.keys[e.code] = false;
     };
 
+    const handleMouseDown = (e: MouseEvent) => {
+      if (e.button === 0) {
+        gameStateRef.current.keys['MouseLeft'] = true;
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) {
+        gameStateRef.current.keys['MouseLeft'] = false;
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [onStop]);
 
