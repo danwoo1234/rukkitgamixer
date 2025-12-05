@@ -387,10 +387,17 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     entities.forEach(entity => {
       if (entity.isDead) return;
 
-      // AI for enemies
-      if (entity.type === EntityType.Slime || entity.type === EntityType.Bat) {
-        // Simple patrol
-        entity.x += entity.direction * 1.5;
+      // AI for enemies (expanded with new types)
+      const isEnemy = [EntityType.Slime, EntityType.Bat, EntityType.Skeleton, EntityType.Ghost, EntityType.Spider].includes(entity.type);
+      
+      if (isEnemy) {
+        // Different AI behaviors based on enemy type
+        const speed = entity.type === EntityType.Spider ? 2.5 : 
+                     entity.type === EntityType.Skeleton ? 1.2 :
+                     entity.type === EntityType.Ghost ? 1.0 : 1.5;
+        
+        // Patrol movement
+        entity.x += entity.direction * speed;
         
         // Check for walls or edges
         const frontTile = getTileAt(
@@ -402,25 +409,40 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           entity.y + entity.height + 4
         );
 
+        // Grounded enemies check for edges
+        const isGroundedEnemy = [EntityType.Slime, EntityType.Skeleton, EntityType.Spider].includes(entity.type);
         if (frontTile === TileType.Wall || frontTile === TileType.Ground ||
-            (entity.type === EntityType.Slime && groundAhead === TileType.Empty)) {
+            (isGroundedEnemy && groundAhead === TileType.Empty)) {
           entity.direction *= -1;
         }
 
-        // Bat floats
+        // Flying behaviors
         if (entity.type === EntityType.Bat) {
           entity.y += Math.sin(Date.now() / 200 + entity.x) * 0.5;
+        }
+        if (entity.type === EntityType.Ghost) {
+          // Ghost floats and phases through walls occasionally
+          entity.y += Math.sin(Date.now() / 300 + entity.x) * 0.3;
+          // Chase player if nearby
+          const dx = player.x - entity.x;
+          const dy = player.y - entity.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 150) {
+            entity.x += (dx / dist) * 0.5;
+            entity.y += (dy / dist) * 0.3;
+          }
         }
 
         // Check collision with player
         if (checkAABB(player, entity)) {
-          if (isStompingFrom(player, entity)) {
-            // Player stomps enemy
+          // Ghost can't be stomped
+          if (entity.type !== EntityType.Ghost && isStompingFrom(player, entity)) {
             entity.isDead = true;
             player.vy = PLAYER_JUMP * 0.6;
             spawnParticles(entity.x + entity.width / 2, entity.y + entity.height / 2, '#22C55E', 15);
-            spawnFloatingText(entity.x + entity.width / 2, entity.y, '+100', '#22C55E');
-            state.score += 100;
+            const points = entity.type === EntityType.Skeleton ? 150 : 100;
+            spawnFloatingText(entity.x + entity.width / 2, entity.y, `+${points}`, '#22C55E');
+            state.score += points;
           } else {
             // Player takes damage
             player.health--;
@@ -447,6 +469,73 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           spawnParticles(entity.x + entity.width / 2, entity.y + entity.height / 2, '#EAB308', 10);
           spawnFloatingText(entity.x + entity.width / 2, entity.y, '+50', '#EAB308');
           state.score += 50;
+        }
+      }
+
+      // Gem collection (worth more than coins)
+      if (entity.type === EntityType.Gem && !entity.isDead) {
+        if (checkAABB(player, entity)) {
+          entity.isDead = true;
+          spawnParticles(entity.x + entity.width / 2, entity.y + entity.height / 2, '#06B6D4', 15);
+          spawnFloatingText(entity.x + entity.width / 2, entity.y, '+200', '#06B6D4');
+          state.score += 200;
+        }
+      }
+
+      // Heart pickup (restore health)
+      if (entity.type === EntityType.Heart && !entity.isDead) {
+        if (checkAABB(player, entity) && player.health < player.maxHealth) {
+          entity.isDead = true;
+          player.health = Math.min(player.health + 1, player.maxHealth);
+          spawnParticles(entity.x + entity.width / 2, entity.y + entity.height / 2, '#EF4444', 12);
+          spawnFloatingText(entity.x + entity.width / 2, entity.y, '+1 HP', '#EF4444');
+        }
+      }
+
+      // Trampoline (super jump)
+      if (entity.type === EntityType.Trampoline) {
+        if (checkAABB(player, entity) && player.vy > 0) {
+          player.vy = PLAYER_JUMP * 1.8;
+          spawnParticles(entity.x + entity.width / 2, entity.y, '#EC4899', 8);
+        }
+      }
+
+      // Checkpoint (update spawn point)
+      if (entity.type === EntityType.Checkpoint && !entity.isDead) {
+        if (checkAABB(player, entity)) {
+          entity.isDead = true;
+          state.startPos = { x: entity.x, y: entity.y - player.height };
+          spawnParticles(entity.x + entity.width / 2, entity.y + entity.height / 2, '#3B82F6', 10);
+          spawnFloatingText(entity.x + entity.width / 2, entity.y, 'Checkpoint!', '#3B82F6');
+        }
+      }
+
+      // Moving platform
+      if (entity.type === EntityType.MovingPlatform) {
+        entity.x += entity.direction * 1;
+        if (entity.x < (entity.properties?.minX as number || entity.x - 100) ||
+            entity.x > (entity.properties?.maxX as number || entity.x + 100)) {
+          entity.direction *= -1;
+        }
+        // Player can stand on moving platform
+        if (checkAABB(player, entity) && player.vy >= 0) {
+          const overlapY = (player.y + player.height) - entity.y;
+          if (overlapY > 0 && overlapY < 10) {
+            player.y = entity.y - player.height;
+            player.vy = 0;
+            player.isGrounded = true;
+            player.x += entity.direction * 1;
+          }
+        }
+      }
+
+      // Key collection
+      if (entity.type === EntityType.Key && !entity.isDead) {
+        if (checkAABB(player, entity)) {
+          entity.isDead = true;
+          state.doorsOpen = true;
+          spawnParticles(entity.x + entity.width / 2, entity.y + entity.height / 2, '#F59E0B', 12);
+          spawnFloatingText(entity.x + entity.width / 2, entity.y, 'Key!', '#F59E0B');
         }
       }
 
@@ -679,6 +768,112 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         ctx.arc(x + width / 2, y + height / 2, width / 8, 0, Math.PI * 2);
         ctx.fill();
         break;
+
+      // New enemies
+      case EntityType.Skeleton:
+        ctx.fillStyle = '#F5F5F4';
+        ctx.beginPath();
+        ctx.arc(x + width / 2, y + 8, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(x + width / 2 - 3, y + 16, 6, 14);
+        ctx.fillStyle = '#1F2937';
+        ctx.beginPath();
+        ctx.arc(x + width / 2 - 3, y + 6, 2, 0, Math.PI * 2);
+        ctx.arc(x + width / 2 + 3, y + 6, 2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case EntityType.Ghost:
+        const ghostAlpha = 0.6 + Math.sin(Date.now() / 200) * 0.2;
+        ctx.fillStyle = `rgba(165, 180, 252, ${ghostAlpha})`;
+        ctx.beginPath();
+        ctx.arc(x + width / 2, y + height / 2 - 4, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(255, 255, 255, ${ghostAlpha})`;
+        ctx.beginPath();
+        ctx.arc(x + width / 2 - 4, y + height / 2 - 6, 3, 0, Math.PI * 2);
+        ctx.arc(x + width / 2 + 4, y + height / 2 - 6, 3, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case EntityType.Spider:
+        ctx.fillStyle = '#1F2937';
+        ctx.beginPath();
+        ctx.ellipse(x + width / 2, y + height / 2, 10, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.arc(x + width / 2 - 3, y + height / 2 - 2, 2, 0, Math.PI * 2);
+        ctx.arc(x + width / 2 + 3, y + height / 2 - 2, 2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      // New items
+      case EntityType.Gem:
+        if (!entity.isDead) {
+          ctx.fillStyle = '#06B6D4';
+          ctx.beginPath();
+          ctx.moveTo(x + width / 2, y);
+          ctx.lineTo(x + width, y + height / 2);
+          ctx.lineTo(x + width / 2, y + height);
+          ctx.lineTo(x, y + height / 2);
+          ctx.closePath();
+          ctx.fill();
+        }
+        break;
+
+      case EntityType.Key:
+        if (!entity.isDead) {
+          ctx.fillStyle = '#F59E0B';
+          ctx.beginPath();
+          ctx.arc(x + width / 2, y + 8, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillRect(x + width / 2 - 2, y + 12, 4, 12);
+        }
+        break;
+
+      case EntityType.Heart:
+        if (!entity.isDead) {
+          ctx.fillStyle = '#EF4444';
+          ctx.beginPath();
+          ctx.arc(x + width / 2 - 4, y + 8, 5, 0, Math.PI * 2);
+          ctx.arc(x + width / 2 + 4, y + 8, 5, 0, Math.PI * 2);
+          ctx.moveTo(x + width / 2, y + height - 4);
+          ctx.lineTo(x + 2, y + 10);
+          ctx.lineTo(x + width - 2, y + 10);
+          ctx.closePath();
+          ctx.fill();
+        }
+        break;
+
+      case EntityType.Trampoline:
+        ctx.fillStyle = '#EC4899';
+        ctx.fillRect(x + 2, y + 8, width - 4, 8);
+        ctx.fillStyle = '#DB2777';
+        ctx.fillRect(x + 4, y + 12, width - 8, 4);
+        break;
+
+      case EntityType.Checkpoint:
+        if (entity.isDead) {
+          ctx.fillStyle = '#22C55E';
+        } else {
+          ctx.fillStyle = '#3B82F6';
+        }
+        ctx.fillRect(x + width / 2 - 2, y, 4, height);
+        ctx.beginPath();
+        ctx.moveTo(x + width / 2 + 2, y);
+        ctx.lineTo(x + width, y + 12);
+        ctx.lineTo(x + width / 2 + 2, y + 24);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case EntityType.MovingPlatform:
+        ctx.fillStyle = '#78716C';
+        ctx.fillRect(x, y, width, height);
+        ctx.fillStyle = '#A8A29E';
+        ctx.fillRect(x + 2, y + 2, width - 4, 4);
+        break;
     }
 
     ctx.restore();
@@ -771,6 +966,53 @@ export const GameEngine: React.FC<GameEngineProps> = ({
               ctx.fillStyle = lavaGradient;
               ctx.fillRect(px, py, map.tileSize, map.tileSize);
               break;
+            case TileType.Ice:
+              const iceGradient = ctx.createLinearGradient(px, py, px, py + map.tileSize);
+              iceGradient.addColorStop(0, '#A5F3FC');
+              iceGradient.addColorStop(1, '#67E8F9');
+              ctx.fillStyle = iceGradient;
+              ctx.fillRect(px, py, map.tileSize, map.tileSize);
+              ctx.strokeStyle = '#FFFFFF';
+              ctx.strokeRect(px + 4, py + 4, 8, 8);
+              break;
+            case TileType.Sand:
+              ctx.fillStyle = '#FCD34D';
+              ctx.fillRect(px, py, map.tileSize, map.tileSize);
+              ctx.fillStyle = '#EAB308';
+              ctx.fillRect(px, py, map.tileSize, 3);
+              break;
+            case TileType.Grass:
+              ctx.fillStyle = '#22C55E';
+              ctx.fillRect(px, py, map.tileSize, map.tileSize);
+              ctx.fillStyle = '#16A34A';
+              ctx.fillRect(px, py, map.tileSize, 4);
+              break;
+            case TileType.Stone:
+              ctx.fillStyle = '#6B7280';
+              ctx.fillRect(px, py, map.tileSize, map.tileSize);
+              ctx.fillStyle = '#9CA3AF';
+              ctx.fillRect(px + 2, py + 2, 10, 8);
+              ctx.fillRect(px + 16, py + 14, 12, 10);
+              break;
+            case TileType.Wood:
+              ctx.fillStyle = '#A16207';
+              ctx.fillRect(px, py, map.tileSize, map.tileSize);
+              ctx.fillStyle = '#78350F';
+              for (let i = 0; i < 4; i++) {
+                ctx.fillRect(px, py + i * 8, map.tileSize, 1);
+              }
+              break;
+            case TileType.Metal:
+              ctx.fillStyle = '#9CA3AF';
+              ctx.fillRect(px, py, map.tileSize, map.tileSize);
+              ctx.fillStyle = '#D1D5DB';
+              ctx.fillRect(px + 2, py + 2, map.tileSize - 4, 2);
+              ctx.fillStyle = '#6B7280';
+              ctx.fillRect(px + 4, py + 4, 6, 6);
+              ctx.fillRect(px + map.tileSize - 10, py + 4, 6, 6);
+              ctx.fillRect(px + 4, py + map.tileSize - 10, 6, 6);
+              ctx.fillRect(px + map.tileSize - 10, py + map.tileSize - 10, 6, 6);
+              break;
           }
         }
       }
@@ -778,7 +1020,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
     // Draw entities
     entities.forEach(entity => {
-      if (!entity.isDead || entity.type === EntityType.Door || entity.type === EntityType.Lever || entity.type === EntityType.Portal || entity.type === EntityType.WallBlock || entity.type === EntityType.Start || entity.type === EntityType.End) {
+      if (!entity.isDead || [EntityType.Door, EntityType.Lever, EntityType.Portal, EntityType.WallBlock, EntityType.Start, EntityType.End, EntityType.Trampoline, EntityType.MovingPlatform].includes(entity.type)) {
         drawEntity(ctx, entity);
       }
     });
@@ -889,6 +1131,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   // Keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent default for game control keys to stop browser scrolling
+      const gameKeys = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyJ', 'KeyE'];
+      if (gameKeys.includes(e.code)) {
+        e.preventDefault();
+      }
+      
       gameStateRef.current.keys[e.code] = true;
       if (e.code === 'Escape') {
         onStop();

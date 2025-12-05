@@ -129,6 +129,71 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
         ctx.arc(px + size * 2 / 3, bubbleY + 12, 2, 0, Math.PI * 2);
         ctx.fill();
         break;
+
+      case TileType.Ice:
+        const iceGradient2 = ctx.createLinearGradient(px, py, px, py + size);
+        iceGradient2.addColorStop(0, '#A5F3FC');
+        iceGradient2.addColorStop(1, '#67E8F9');
+        ctx.fillStyle = iceGradient2;
+        ctx.fillRect(px, py, size, size);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px + 4, py + 4, 8, 8);
+        ctx.strokeRect(px + size - 12, py + size - 12, 8, 8);
+        break;
+
+      case TileType.Sand:
+        ctx.fillStyle = '#FCD34D';
+        ctx.fillRect(px, py, size, size);
+        ctx.fillStyle = '#EAB308';
+        ctx.fillRect(px, py, size, 3);
+        ctx.fillStyle = '#D4A900';
+        for (let i = 0; i < 5; i++) {
+          ctx.fillRect(px + Math.random() * size, py + Math.random() * size, 2, 2);
+        }
+        break;
+
+      case TileType.Grass:
+        ctx.fillStyle = '#22C55E';
+        ctx.fillRect(px, py, size, size);
+        ctx.fillStyle = '#16A34A';
+        ctx.fillRect(px, py, size, 4);
+        ctx.fillStyle = '#15803D';
+        for (let i = 0; i < 4; i++) {
+          ctx.fillRect(px + i * 8, py, 2, 6);
+        }
+        break;
+
+      case TileType.Stone:
+        ctx.fillStyle = '#6B7280';
+        ctx.fillRect(px, py, size, size);
+        ctx.fillStyle = '#9CA3AF';
+        ctx.fillRect(px + 2, py + 2, 10, 8);
+        ctx.fillRect(px + 16, py + 14, 12, 10);
+        ctx.fillStyle = '#4B5563';
+        ctx.fillRect(px + 14, py + 4, 8, 6);
+        break;
+
+      case TileType.Wood:
+        ctx.fillStyle = '#A16207';
+        ctx.fillRect(px, py, size, size);
+        ctx.fillStyle = '#78350F';
+        for (let i = 0; i < 4; i++) {
+          ctx.fillRect(px, py + i * 8, size, 1);
+        }
+        break;
+
+      case TileType.Metal:
+        ctx.fillStyle = '#9CA3AF';
+        ctx.fillRect(px, py, size, size);
+        ctx.fillStyle = '#D1D5DB';
+        ctx.fillRect(px + 2, py + 2, size - 4, 2);
+        ctx.fillStyle = '#6B7280';
+        ctx.fillRect(px + 4, py + 4, 6, 6);
+        ctx.fillRect(px + size - 10, py + 4, 6, 6);
+        ctx.fillRect(px + 4, py + size - 10, 6, 6);
+        ctx.fillRect(px + size - 10, py + size - 10, 6, 6);
+        break;
     }
   }, []);
 
@@ -311,6 +376,130 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
         ctx.strokeRect(x + 2, y + 2, width - 4, height - 4);
         // Highlight
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.fillRect(x + 2, y + 2, width - 4, 4);
+        break;
+
+      case EntityType.Start:
+        ctx.fillStyle = '#22C55E';
+        ctx.beginPath();
+        ctx.moveTo(centerX, y);
+        ctx.lineTo(x + width, y + height);
+        ctx.lineTo(x, y + height);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('S', centerX, y + height - 6);
+        break;
+
+      case EntityType.End:
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, width / 2 - 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, width / 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, width / 8, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case EntityType.Skeleton:
+        ctx.fillStyle = '#F5F5F4';
+        ctx.beginPath();
+        ctx.arc(centerX, y + 8, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(centerX - 3, y + 16, 6, 14);
+        ctx.fillStyle = '#1F2937';
+        ctx.beginPath();
+        ctx.arc(centerX - 3, y + 6, 2, 0, Math.PI * 2);
+        ctx.arc(centerX + 3, y + 6, 2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case EntityType.Ghost:
+        ctx.fillStyle = 'rgba(165, 180, 252, 0.7)';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - 4, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(centerX - 4, centerY - 6, 3, 0, Math.PI * 2);
+        ctx.arc(centerX + 4, centerY - 6, 3, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case EntityType.Spider:
+        ctx.fillStyle = '#1F2937';
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, 10, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.arc(centerX - 3, centerY - 2, 2, 0, Math.PI * 2);
+        ctx.arc(centerX + 3, centerY - 2, 2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      case EntityType.Gem:
+        ctx.fillStyle = '#06B6D4';
+        ctx.beginPath();
+        ctx.moveTo(centerX, y);
+        ctx.lineTo(x + width, centerY);
+        ctx.lineTo(centerX, y + height);
+        ctx.lineTo(x, centerY);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case EntityType.Key:
+        ctx.fillStyle = '#F59E0B';
+        ctx.beginPath();
+        ctx.arc(centerX, y + 8, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(centerX - 2, y + 12, 4, 12);
+        break;
+
+      case EntityType.Heart:
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.arc(centerX - 4, y + 8, 5, 0, Math.PI * 2);
+        ctx.arc(centerX + 4, y + 8, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(centerX, y + height - 4);
+        ctx.lineTo(x + 2, y + 10);
+        ctx.lineTo(x + width - 2, y + 10);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case EntityType.Trampoline:
+        ctx.fillStyle = '#EC4899';
+        ctx.fillRect(x + 2, y + 8, width - 4, 8);
+        ctx.fillStyle = '#DB2777';
+        ctx.fillRect(x + 4, y + 12, width - 8, 4);
+        break;
+
+      case EntityType.Checkpoint:
+        ctx.fillStyle = '#3B82F6';
+        ctx.fillRect(centerX - 2, y, 4, height);
+        ctx.beginPath();
+        ctx.moveTo(centerX + 2, y);
+        ctx.lineTo(x + width, y + 12);
+        ctx.lineTo(centerX + 2, y + 24);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case EntityType.MovingPlatform:
+        ctx.fillStyle = '#78716C';
+        ctx.fillRect(x, y, width, height);
+        ctx.fillStyle = '#A8A29E';
         ctx.fillRect(x + 2, y + 2, width - 4, 4);
         break;
     }

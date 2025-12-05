@@ -192,9 +192,10 @@ const Index = () => {
       <Header isPlaying={editorState.isPlaying} onTogglePlay={togglePlayMode} onUndo={undo} onRedo={redo}
         onExport={handleExport} onSave={handleSave} onNew={newMap} onImport={handleImport}
         onOpenAssetStore={() => setIsAssetStoreModalOpen(true)} onOpenAnalytics={() => setIsAnalyticsModalOpen(true)}
-        onOpenAuth={() => user ? supabase.auth.signOut() : navigate('/auth')}
+        onOpenAuth={() => navigate('/auth')}
         onOpenPublish={() => setIsPublishModalOpen(true)} gridVisible={editorState.gridVisible} onToggleGrid={toggleGrid}
-        onOpenMapSettings={() => setIsMapSettingsOpen(true)} onBrowse={() => navigate('/browse')} user={user} />
+        onOpenMapSettings={() => setIsMapSettingsOpen(true)} onBrowse={() => navigate('/browse')}
+        onMyMaps={() => navigate('/my-maps')} onLogout={() => supabase.auth.signOut()} user={user} />
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar selectedTool={editorState.tool} selectedTile={editorState.selectedTile} selectedEntity={editorState.selectedEntity}
