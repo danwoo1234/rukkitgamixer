@@ -40,6 +40,12 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ map }) => {
     [TileType.Water]: 'Water',
     [TileType.Spike]: 'Spike',
     [TileType.Lava]: 'Lava',
+    [TileType.Ice]: 'Ice',
+    [TileType.Sand]: 'Sand',
+    [TileType.Grass]: 'Grass',
+    [TileType.Stone]: 'Stone',
+    [TileType.Wood]: 'Wood',
+    [TileType.Metal]: 'Metal',
   };
 
   return (

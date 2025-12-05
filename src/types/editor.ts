@@ -6,6 +6,12 @@ export enum TileType {
   Water = 3,
   Spike = 4,
   Lava = 5,
+  Ice = 6,
+  Sand = 7,
+  Grass = 8,
+  Stone = 9,
+  Wood = 10,
+  Metal = 11,
 }
 
 // Entity Types
@@ -20,6 +26,18 @@ export enum EntityType {
   WallBlock = 'wallBlock',
   Start = 'start',
   End = 'end',
+  // New enemies
+  Skeleton = 'skeleton',
+  Ghost = 'ghost',
+  Spider = 'spider',
+  // New items
+  Gem = 'gem',
+  Key = 'key',
+  Heart = 'heart',
+  // Hazards
+  MovingPlatform = 'movingPlatform',
+  Trampoline = 'trampoline',
+  Checkpoint = 'checkpoint',
 }
 
 // Entity data structure
@@ -119,25 +137,43 @@ export const PHYSICS = {
   SHOOT_COOLDOWN: 200,
 };
 
-// Default tile palette
+// Default tile palette - expanded
 export const TILE_PALETTE: TileInfo[] = [
   { type: TileType.Ground, name: 'Ground', color: '#8B7355' },
   { type: TileType.Wall, name: 'Wall', color: '#4A5568' },
   { type: TileType.Water, name: 'Water', color: '#0EA5E9' },
   { type: TileType.Spike, name: 'Spike', color: '#64748B' },
   { type: TileType.Lava, name: 'Lava', color: '#EF4444' },
+  { type: TileType.Ice, name: 'Ice', color: '#67E8F9' },
+  { type: TileType.Sand, name: 'Sand', color: '#FCD34D' },
+  { type: TileType.Grass, name: 'Grass', color: '#22C55E' },
+  { type: TileType.Stone, name: 'Stone', color: '#6B7280' },
+  { type: TileType.Wood, name: 'Wood', color: '#A16207' },
+  { type: TileType.Metal, name: 'Metal', color: '#9CA3AF' },
 ];
 
-// Default entity palette
+// Default entity palette - expanded
 export const ENTITY_PALETTE: EntityInfo[] = [
   { type: EntityType.Player, name: 'Player', color: '#10B981', icon: 'User' },
   { type: EntityType.Start, name: 'Start', color: '#22C55E', icon: 'Flag' },
   { type: EntityType.End, name: 'End', color: '#EF4444', icon: 'Target' },
+  { type: EntityType.Checkpoint, name: 'Checkpoint', color: '#3B82F6', icon: 'Flag' },
+  // Enemies
   { type: EntityType.Slime, name: 'Slime', color: '#22C55E', icon: 'Bug' },
   { type: EntityType.Bat, name: 'Bat', color: '#8B5CF6', icon: 'Bird' },
+  { type: EntityType.Skeleton, name: 'Skeleton', color: '#F5F5F4', icon: 'Skull' },
+  { type: EntityType.Ghost, name: 'Ghost', color: '#A5B4FC', icon: 'Ghost' },
+  { type: EntityType.Spider, name: 'Spider', color: '#1F2937', icon: 'Bug' },
+  // Items
   { type: EntityType.Coin, name: 'Coin', color: '#EAB308', icon: 'Coins' },
+  { type: EntityType.Gem, name: 'Gem', color: '#06B6D4', icon: 'Gem' },
+  { type: EntityType.Key, name: 'Key', color: '#F59E0B', icon: 'Key' },
+  { type: EntityType.Heart, name: 'Heart', color: '#EF4444', icon: 'Heart' },
+  // Interactive
   { type: EntityType.Door, name: 'Door', color: '#A16207', icon: 'DoorClosed' },
   { type: EntityType.Lever, name: 'Lever', color: '#64748B', icon: 'ToggleLeft' },
   { type: EntityType.Portal, name: 'Portal', color: '#A855F7', icon: 'Sparkles' },
   { type: EntityType.WallBlock, name: 'Wall Block', color: '#374151', icon: 'Square' },
+  { type: EntityType.MovingPlatform, name: 'Platform', color: '#78716C', icon: 'Minus' },
+  { type: EntityType.Trampoline, name: 'Trampoline', color: '#EC4899', icon: 'ArrowUp' },
 ];

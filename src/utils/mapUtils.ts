@@ -66,6 +66,18 @@ export const createEntity = (
     [EntityType.WallBlock]: { width: 32, height: 32 },
     [EntityType.Start]: { width: 32, height: 32 },
     [EntityType.End]: { width: 32, height: 32 },
+    // New enemies
+    [EntityType.Skeleton]: { width: 28, height: 32 },
+    [EntityType.Ghost]: { width: 28, height: 28 },
+    [EntityType.Spider]: { width: 24, height: 16 },
+    // New items
+    [EntityType.Gem]: { width: 20, height: 20 },
+    [EntityType.Key]: { width: 20, height: 24 },
+    [EntityType.Heart]: { width: 24, height: 24 },
+    // Interactive
+    [EntityType.MovingPlatform]: { width: 64, height: 16 },
+    [EntityType.Trampoline]: { width: 32, height: 16 },
+    [EntityType.Checkpoint]: { width: 32, height: 48 },
   };
 
   const size = sizes[type] || { width: 32, height: 32 };

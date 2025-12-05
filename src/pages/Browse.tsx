@@ -40,7 +40,7 @@ const Browse = () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('game_maps')
-      .select('id, name, width, height, play_count, likes, created_at, profiles(username)')
+      .select('id, name, width, height, play_count, likes, created_at, user_id')
       .eq('is_public', true)
       .order('likes', { ascending: false });
 

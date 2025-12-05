@@ -41,6 +41,8 @@ interface HeaderProps {
   onOpenPublish: () => void;
   onOpenMapSettings: () => void;
   onBrowse: () => void;
+  onMyMaps: () => void;
+  onLogout: () => void;
   gridVisible: boolean;
   onToggleGrid: () => void;
   user: User | null;
@@ -61,6 +63,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPublish,
   onOpenMapSettings,
   onBrowse,
+  onMyMaps,
+  onLogout,
   gridVisible,
   onToggleGrid,
   user,
@@ -198,9 +202,27 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="border-l border-surface-2 pl-2 ml-2 flex items-center gap-2">
           {user ? (
-            <span className="text-sm text-muted-foreground mr-2">
-              {user.email?.split('@')[0]}
-            </span>
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onMyMaps}
+                className="text-muted-foreground hover:text-foreground hover:bg-surface-2"
+              >
+                My Maps
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {user.email?.split('@')[0]}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onLogout}
+                className="text-muted-foreground hover:text-foreground hover:bg-surface-2"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </>
           ) : (
             <Button
               variant="ghost"
