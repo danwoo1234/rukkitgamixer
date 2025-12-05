@@ -10,10 +10,11 @@ import {
   BarChart3,
   Rocket,
   LogIn,
-  UserPlus,
+  LogOut,
   Menu,
   Grid3X3,
   FileJson,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { User } from '@supabase/supabase-js';
 
 interface HeaderProps {
   isPlaying: boolean;
@@ -37,8 +39,11 @@ interface HeaderProps {
   onOpenAnalytics: () => void;
   onOpenAuth: () => void;
   onOpenPublish: () => void;
+  onOpenMapSettings: () => void;
+  onBrowse: () => void;
   gridVisible: boolean;
   onToggleGrid: () => void;
+  user: User | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -54,8 +59,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAnalytics,
   onOpenAuth,
   onOpenPublish,
+  onOpenMapSettings,
+  onBrowse,
   gridVisible,
   onToggleGrid,
+  user,
 }) => {
   return (
     <header className="h-14 bg-surface-1 border-b border-surface-2 flex items-center justify-between px-4">
@@ -94,6 +102,11 @@ export const Header: React.FC<HeaderProps> = ({
             <DropdownMenuItem onClick={onSave} className="text-foreground hover:bg-surface-2">
               <Save className="w-4 h-4 mr-2" />
               Save
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-surface-2" />
+            <DropdownMenuItem onClick={onOpenMapSettings} className="text-foreground hover:bg-surface-2">
+              <Settings className="w-4 h-4 mr-2" />
+              Map Settings
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -174,17 +187,31 @@ export const Header: React.FC<HeaderProps> = ({
           <BarChart3 className="w-4 h-4 mr-2" />
           Analytics
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onBrowse}
+          className="text-muted-foreground hover:text-foreground hover:bg-surface-2"
+        >
+          Browse
+        </Button>
 
         <div className="border-l border-surface-2 pl-2 ml-2 flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onOpenAuth}
-            className="text-muted-foreground hover:text-foreground hover:bg-surface-2"
-          >
-            <LogIn className="w-4 h-4 mr-2" />
-            Login
-          </Button>
+          {user ? (
+            <span className="text-sm text-muted-foreground mr-2">
+              {user.email?.split('@')[0]}
+            </span>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onOpenAuth}
+              className="text-muted-foreground hover:text-foreground hover:bg-surface-2"
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              Login
+            </Button>
+          )}
           <Button
             onClick={onOpenPublish}
             size="sm"

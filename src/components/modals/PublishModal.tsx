@@ -11,31 +11,60 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Copy, Loader2, Rocket, ExternalLink } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { GameMap } from '@/types/editor';
+import { User } from '@supabase/supabase-js';
 
 interface PublishModalProps {
   isOpen: boolean;
   onClose: () => void;
   mapName: string;
+  map: GameMap;
+  user: User | null;
 }
 
-export const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, mapName }) => {
+export const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, mapName, map, user }) => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [gameName, setGameName] = useState(mapName);
 
   const handlePublish = async () => {
+    if (!user) {
+      toast.error('Please login to publish your game');
+      return;
+    }
+
     setIsPublishing(true);
 
-    // Simulate publishing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const mapData = {
+        name: gameName,
+        user_id: user.id,
+        width: map.width,
+        height: map.height,
+        tile_size: map.tileSize,
+        map_data: JSON.parse(JSON.stringify(map)),
+        is_public: true,
+      };
+      
+      const { data, error } = await supabase
+        .from('game_maps')
+        .insert([mapData])
+        .select()
+        .single();
 
-    const gameId = Math.random().toString(36).substring(2, 10);
-    const url = `${window.location.origin}?play=${gameId}`;
-    setPublishedUrl(url);
-    
-    toast.success('Game Published!', {
-      description: 'Your game is now live and ready to share.',
-    });
+      if (error) throw error;
+
+      const url = `${window.location.origin}?play=${data.id}`;
+      setPublishedUrl(url);
+      
+      toast.success('Game Published!', {
+        description: 'Your game is now live and ready to share.',
+      });
+    } catch (error) {
+      console.error('Error publishing:', error);
+      toast.error('Failed to publish game');
+    }
 
     setIsPublishing(false);
   };
