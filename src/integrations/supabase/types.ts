@@ -24,6 +24,7 @@ export type Database = {
           map_data: Json
           name: string
           play_count: number | null
+          slug: string | null
           tile_size: number
           updated_at: string | null
           user_id: string
@@ -38,6 +39,7 @@ export type Database = {
           map_data: Json
           name?: string
           play_count?: number | null
+          slug?: string | null
           tile_size?: number
           updated_at?: string | null
           user_id: string
@@ -52,6 +54,7 @@ export type Database = {
           map_data?: Json
           name?: string
           play_count?: number | null
+          slug?: string | null
           tile_size?: number
           updated_at?: string | null
           user_id?: string
