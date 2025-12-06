@@ -32,6 +32,7 @@ const Index = () => {
   const [isMapSettingsOpen, setIsMapSettingsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isStandaloneMode, setIsStandaloneMode] = useState(false);
+  const [currentMapId, setCurrentMapId] = useState<string | null>(null);
 
   // Auth state
   useEffect(() => {
@@ -46,18 +47,24 @@ const Index = () => {
   // Check for standalone play mode or load shared map
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const playId = params.get('play');
-    if (playId) {
+    const playParam = params.get('play');
+    if (playParam) {
       setIsStandaloneMode(true);
-      // Load map from database
-      supabase.from('game_maps').select('*').eq('id', playId).maybeSingle()
-        .then(({ data }) => {
-          if (data?.map_data) {
-            loadMap(data.map_data as any);
-            supabase.rpc('increment_play_count', { map_uuid: playId });
-          }
-          togglePlayMode();
-        });
+      // Try to load map by slug first, then by ID
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(playParam);
+      
+      const query = isUUID 
+        ? supabase.from('game_maps').select('*').eq('id', playParam).maybeSingle()
+        : supabase.from('game_maps').select('*').eq('slug', playParam).maybeSingle();
+      
+      query.then(({ data }) => {
+        if (data?.map_data) {
+          loadMap(data.map_data as any);
+          setCurrentMapId(data.id);
+          supabase.rpc('increment_play_count', { map_uuid: data.id });
+        }
+        togglePlayMode();
+      });
     }
   }, []);
 
@@ -98,22 +105,25 @@ const Index = () => {
 
   const handleSave = useCallback(async () => {
     if (user) {
-      const { error } = await supabase.from('game_maps').upsert({
-        id: map.id,
+      const { data, error } = await supabase.from('game_maps').upsert({
+        id: currentMapId || map.id,
         user_id: user.id,
         name: map.name,
         width: map.width,
         height: map.height,
         tile_size: map.tileSize,
         map_data: map as any,
-      });
+      }).select().single();
       if (error) toast.error('Failed to save');
-      else toast.success('Saved to cloud!');
+      else {
+        setCurrentMapId(data.id);
+        toast.success('Saved to cloud!');
+      }
     } else {
       localStorage.setItem('rukkit_map', exportMapToJson(map));
       toast.success('Saved locally!');
     }
-  }, [map, user]);
+  }, [map, user, currentMapId]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
@@ -228,7 +238,7 @@ const Index = () => {
       </footer>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-      <PublishModal isOpen={isPublishModalOpen} onClose={() => setIsPublishModalOpen(false)} mapName={map.name} map={map} user={user} />
+      <PublishModal isOpen={isPublishModalOpen} onClose={() => setIsPublishModalOpen(false)} mapName={map.name} map={map} user={user} existingMapId={currentMapId} />
       <AnalyticsModal isOpen={isAnalyticsModalOpen} onClose={() => setIsAnalyticsModalOpen(false)} />
       <AssetStoreModal isOpen={isAssetStoreModalOpen} onClose={() => setIsAssetStoreModalOpen(false)} />
       <MapSettingsModal isOpen={isMapSettingsOpen} onClose={() => setIsMapSettingsOpen(false)}
