@@ -1,90 +1,164 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, Wand2 } from 'lucide-react';
+import { Sparkles, Loader2, Wand2, Skull, Image, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface AIPanelProps {
   onGenerateMap: (prompt: string) => Promise<void>;
+  onGenerateBoss?: (prompt: string) => Promise<void>;
+  onGenerateBackground?: (prompt: string) => Promise<void>;
   isGenerating: boolean;
 }
 
-const EXAMPLE_PROMPTS = [
-  'A lava-filled dungeon with floating platforms',
-  'A peaceful forest level with hidden coins',
-  'An ice cave with treacherous spikes',
-  'A castle with doors and levers',
+const MAP_EXAMPLES = [
+  'A lava dungeon with floating platforms',
+  'A peaceful forest with hidden coins',
+  'An ice cave with spikes',
+];
+
+const BOSS_EXAMPLES = [
+  'A fire dragon with 3 attack patterns',
+  'A giant slime that splits into smaller ones',
+  'A skeleton king with sword attacks',
+];
+
+const BG_EXAMPLES = [
+  'A sunset mountain range',
+  'A dark spooky forest',
+  'An underwater coral reef',
 ];
 
 export const AIPanel: React.FC<AIPanelProps> = ({
   onGenerateMap,
+  onGenerateBoss,
+  onGenerateBackground,
   isGenerating,
 }) => {
-  const [prompt, setPrompt] = useState('');
-
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    await onGenerateMap(prompt);
-  };
-
-  const handleExampleClick = (example: string) => {
-    setPrompt(example);
-  };
+  const [mapPrompt, setMapPrompt] = useState('');
+  const [bossPrompt, setBossPrompt] = useState('');
+  const [bgPrompt, setBgPrompt] = useState('');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Sparkles className="w-5 h-5 text-primary" />
-        <h3 className="text-sm font-medium text-foreground">AI Map Generator</h3>
+        <Sparkles className="w-4 h-4 text-primary" />
+        <h3 className="text-sm font-medium text-foreground">AI Generators</h3>
       </div>
 
-      <div className="space-y-2">
-        <Textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe the level you want to create..."
-          className="min-h-[100px] bg-surface-2 border-surface-3 text-foreground placeholder:text-muted-foreground resize-none"
-        />
-        
-        <Button
-          onClick={handleGenerate}
-          disabled={!prompt.trim() || isGenerating}
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Wand2 className="w-4 h-4 mr-2" />
-              Generate Map
-            </>
-          )}
-        </Button>
-      </div>
+      <Tabs defaultValue="map" className="w-full">
+        <TabsList className="w-full grid grid-cols-3 h-8">
+          <TabsTrigger value="map" className="text-xs px-2">
+            <Map className="w-3 h-3 mr-1" />
+            Map
+          </TabsTrigger>
+          <TabsTrigger value="boss" className="text-xs px-2">
+            <Skull className="w-3 h-3 mr-1" />
+            Boss
+          </TabsTrigger>
+          <TabsTrigger value="bg" className="text-xs px-2">
+            <Image className="w-3 h-3 mr-1" />
+            Background
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">Try an example:</p>
-        <div className="flex flex-wrap gap-2">
-          {EXAMPLE_PROMPTS.map((example, index) => (
-            <button
-              key={index}
-              onClick={() => handleExampleClick(example)}
-              className="text-xs px-2 py-1 rounded bg-surface-2 text-muted-foreground hover:text-foreground hover:bg-surface-3 transition-colors"
-            >
-              {example.slice(0, 25)}...
-            </button>
-          ))}
-        </div>
-      </div>
+        <TabsContent value="map" className="mt-3 space-y-2">
+          <Textarea
+            value={mapPrompt}
+            onChange={(e) => setMapPrompt(e.target.value)}
+            placeholder="Describe your level..."
+            className="min-h-[80px] bg-surface-2 border-surface-3 text-sm resize-none"
+          />
+          <Button
+            onClick={() => onGenerateMap(mapPrompt)}
+            disabled={!mapPrompt.trim() || isGenerating}
+            className="w-full h-8 text-sm"
+          >
+            {isGenerating ? (
+              <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Generating...</>
+            ) : (
+              <><Wand2 className="w-3 h-3 mr-1" />Generate Map</>
+            )}
+          </Button>
+          <div className="flex flex-wrap gap-1">
+            {MAP_EXAMPLES.map((ex, i) => (
+              <button
+                key={i}
+                onClick={() => setMapPrompt(ex)}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {ex.slice(0, 20)}...
+              </button>
+            ))}
+          </div>
+        </TabsContent>
 
-      <div className="pt-4 border-t border-surface-2">
-        <p className="text-xs text-muted-foreground">
-          Powered by Google Gemini. AI will generate a map based on your description.
-          If no API key is configured, procedural generation will be used.
-        </p>
-      </div>
+        <TabsContent value="boss" className="mt-3 space-y-2">
+          <Textarea
+            value={bossPrompt}
+            onChange={(e) => setBossPrompt(e.target.value)}
+            placeholder="Describe your boss enemy..."
+            className="min-h-[80px] bg-surface-2 border-surface-3 text-sm resize-none"
+          />
+          <Button
+            onClick={() => onGenerateBoss?.(bossPrompt)}
+            disabled={!bossPrompt.trim() || isGenerating}
+            className="w-full h-8 text-sm"
+          >
+            {isGenerating ? (
+              <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Generating...</>
+            ) : (
+              <><Skull className="w-3 h-3 mr-1" />Generate Boss</>
+            )}
+          </Button>
+          <div className="flex flex-wrap gap-1">
+            {BOSS_EXAMPLES.map((ex, i) => (
+              <button
+                key={i}
+                onClick={() => setBossPrompt(ex)}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {ex.slice(0, 22)}...
+              </button>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="bg" className="mt-3 space-y-2">
+          <Textarea
+            value={bgPrompt}
+            onChange={(e) => setBgPrompt(e.target.value)}
+            placeholder="Describe your background..."
+            className="min-h-[80px] bg-surface-2 border-surface-3 text-sm resize-none"
+          />
+          <Button
+            onClick={() => onGenerateBackground?.(bgPrompt)}
+            disabled={!bgPrompt.trim() || isGenerating}
+            className="w-full h-8 text-sm"
+          >
+            {isGenerating ? (
+              <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Generating...</>
+            ) : (
+              <><Image className="w-3 h-3 mr-1" />Generate Background</>
+            )}
+          </Button>
+          <div className="flex flex-wrap gap-1">
+            {BG_EXAMPLES.map((ex, i) => (
+              <button
+                key={i}
+                onClick={() => setBgPrompt(ex)}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {ex.slice(0, 18)}...
+              </button>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <p className="text-[10px] text-muted-foreground pt-2 border-t border-surface-2">
+        Powered by Google Gemini AI
+      </p>
     </div>
   );
 };
