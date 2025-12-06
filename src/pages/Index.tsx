@@ -174,6 +174,38 @@ const Index = () => {
     setIsGenerating(false);
   }, [map, updateMap]);
 
+  const handleGenerateBoss = useCallback(async (prompt: string) => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-boss', {
+        body: { prompt }
+      });
+      if (error) throw error;
+      console.log('Generated boss:', data);
+      toast.success(`Boss "${data.name}" created with ${data.patterns?.length || 0} patterns!`);
+      updateMap(currentMap => ({ ...currentMap, boss: data }));
+    } catch (error) {
+      toast.error('Boss generation failed');
+    }
+    setIsGenerating(false);
+  }, [updateMap]);
+
+  const handleGenerateBackground = useCallback(async (prompt: string) => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-background', {
+        body: { prompt }
+      });
+      if (error) throw error;
+      console.log('Generated background:', data);
+      toast.success(`Background "${data.name}" with ${data.layers?.length || 0} layers!`);
+      updateMap(currentMap => ({ ...currentMap, background: data }));
+    } catch (error) {
+      toast.error('Background generation failed');
+    }
+    setIsGenerating(false);
+  }, [updateMap]);
+
   const handleMapSettings = useCallback((settings: { width: number; height: number; tileSize: number; name: string }) => {
     const newMapData = createNewMap(settings.width, settings.height);
     newMapData.name = settings.name;
@@ -212,7 +244,9 @@ const Index = () => {
           layers={map.layers} activeLayerId={editorState.activeLayerId} map={map} onSelectTool={setTool}
           onSelectTile={setSelectedTile} onSelectEntity={setSelectedEntity} onSelectLayer={setActiveLayer}
           onToggleLayerVisibility={toggleLayerVisibility} onToggleLayerLock={toggleLayerLock}
-          onReorderLayers={reorderLayers} onGenerateMap={handleGenerateMap} isGenerating={isGenerating} />
+          onReorderLayers={reorderLayers} onGenerateMap={handleGenerateMap} 
+          onGenerateBoss={handleGenerateBoss} onGenerateBackground={handleGenerateBackground}
+          isGenerating={isGenerating} />
 
         <main className="flex-1 flex flex-col overflow-hidden">
           {editorState.isPlaying ? (

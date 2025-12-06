@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Hammer, Layers, Sparkles, Settings } from 'lucide-react';
-import { ToolPalette } from './ToolPalette';
-import { TilePalette } from './TilePalette';
-import { EntityPalette } from './EntityPalette';
+import { BuildPalette } from './BuildPalette';
 import { LayerPanel } from './LayerPanel';
 import { AIPanel } from './AIPanel';
 import { PropertiesPanel } from './PropertiesPanel';
@@ -24,6 +22,8 @@ interface SidebarProps {
   onToggleLayerLock: (layerId: string) => void;
   onReorderLayers: (startIndex: number, endIndex: number) => void;
   onGenerateMap: (prompt: string) => Promise<void>;
+  onGenerateBoss?: (prompt: string) => Promise<void>;
+  onGenerateBackground?: (prompt: string) => Promise<void>;
   isGenerating: boolean;
 }
 
@@ -42,59 +42,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleLayerLock,
   onReorderLayers,
   onGenerateMap,
+  onGenerateBoss,
+  onGenerateBackground,
   isGenerating,
 }) => {
   return (
-    <aside className="w-72 bg-surface-1 border-r border-surface-2 flex flex-col h-full">
+    <aside className="w-64 bg-surface-1 border-r border-surface-2 flex flex-col h-full">
       <Tabs defaultValue="build" className="flex-1 flex flex-col">
-        <TabsList className="w-full justify-start rounded-none border-b border-surface-2 bg-transparent p-0">
+        <TabsList className="w-full justify-start rounded-none border-b border-surface-2 bg-transparent p-0 h-10">
           <TabsTrigger
             value="build"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-4 py-3"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-3 py-2 text-xs"
           >
-            <Hammer className="w-4 h-4 mr-2" />
+            <Hammer className="w-3.5 h-3.5 mr-1" />
             Build
           </TabsTrigger>
           <TabsTrigger
             value="layers"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-4 py-3"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-3 py-2 text-xs"
           >
-            <Layers className="w-4 h-4 mr-2" />
+            <Layers className="w-3.5 h-3.5 mr-1" />
             Layers
           </TabsTrigger>
           <TabsTrigger
             value="ai"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-4 py-3"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-3 py-2 text-xs"
           >
-            <Sparkles className="w-4 h-4 mr-2" />
+            <Sparkles className="w-3.5 h-3.5 mr-1" />
             AI
           </TabsTrigger>
           <TabsTrigger
-            value="properties"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-4 py-3"
+            value="props"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-3 py-2 text-xs"
           >
-            <Settings className="w-4 h-4 mr-2" />
+            <Settings className="w-3.5 h-3.5 mr-1" />
             Props
           </TabsTrigger>
         </TabsList>
 
         <div className="flex-1 overflow-y-auto scrollbar-thin">
-          <TabsContent value="build" className="m-0 p-4 space-y-6">
-            <ToolPalette
+          <TabsContent value="build" className="m-0 p-3">
+            <BuildPalette
               selectedTool={selectedTool}
-              onSelectTool={onSelectTool}
-            />
-            <TilePalette
               selectedTile={selectedTile}
-              onSelectTile={onSelectTile}
-            />
-            <EntityPalette
               selectedEntity={selectedEntity}
+              onSelectTool={onSelectTool}
+              onSelectTile={onSelectTile}
               onSelectEntity={onSelectEntity}
             />
           </TabsContent>
 
-          <TabsContent value="layers" className="m-0 p-4">
+          <TabsContent value="layers" className="m-0 p-3">
             <LayerPanel
               layers={layers}
               activeLayerId={activeLayerId}
@@ -105,14 +103,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             />
           </TabsContent>
 
-          <TabsContent value="ai" className="m-0 p-4">
+          <TabsContent value="ai" className="m-0 p-3">
             <AIPanel
               onGenerateMap={onGenerateMap}
+              onGenerateBoss={onGenerateBoss}
+              onGenerateBackground={onGenerateBackground}
               isGenerating={isGenerating}
             />
           </TabsContent>
 
-          <TabsContent value="properties" className="m-0 p-4">
+          <TabsContent value="props" className="m-0 p-3">
             <PropertiesPanel map={map} />
           </TabsContent>
         </div>
